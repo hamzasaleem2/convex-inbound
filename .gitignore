@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+*.local
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Cache
+.eslintcache
+
+# Logs
+*.log
+
+# Pack output
+*.tgz
+
+# Misc
+explorations/
+docs/.vitepress/cache

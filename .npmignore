@@ -1,0 +1,18 @@
+# Source files (dist is published instead)
+src/**/*.test.ts
+example/
+
+# Config files not needed in package
+.github/
+.vscode/
+.eslintcache
+*.tsbuildinfo
+*.log
+*.local
+
+# Dev files
+vitest.config.js
+eslint.config.js
+tsconfig.test.json
+.prettierrc.json
+CHANGELOG.md
