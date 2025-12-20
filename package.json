@@ -1,7 +1,10 @@
 {
   "name": "@hamzasaleemorg/convex-inbound",
   "description": "A Convex component for inbound.new - send, receive, and reply to emails with durable execution, batching, and full tracking.",
-  "repository": "github:hamzasaleem2/convex-inbound",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamzasaleem2/convex-inbound.git"
+  },
   "homepage": "https://github.com/hamzasaleem2/convex-inbound#readme",
   "bugs": {
     "url": "https://github.com/hamzasaleem2/convex-inbound/issues"
