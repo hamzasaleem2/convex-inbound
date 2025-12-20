@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2024-12-21
+
+- Fixed repository URL in package.json
+- Verified organization setup
+
 ## [0.1.0] - 2024-12-21
 
 ### Added
