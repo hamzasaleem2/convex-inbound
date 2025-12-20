@@ -180,10 +180,23 @@ export const makeBatch = internalMutation({
     const CHUNK_SIZE = 10;
     for (let i = 0; i < emailIds.length; i += CHUNK_SIZE) {
       const chunk = emailIds.slice(i, i + CHUNK_SIZE);
-      await emailWorkpool.enqueueAction(ctx, internal.lib.performBatchSend, {
-        emailIds: chunk,
-        apiKey: args.apiKey,
-      });
+      await emailWorkpool.enqueueAction(
+        ctx,
+        internal.lib.performBatchSend,
+        {
+          emailIds: chunk,
+          apiKey: args.apiKey,
+        },
+        {
+          retry: {
+            maxAttempts: 5,
+            initialBackoffMs: 1000,
+            base: 2,
+          },
+          context: { emailIds: chunk },
+          onComplete: internal.lib.onEmailComplete,
+        }
+      );
     }
 
     // 4. Re-schedule self immediately to drain queue (Recursive loop)
@@ -197,6 +210,44 @@ export const makeBatch = internalMutation({
       await ctx.db.patch(existing._id, { runId });
     } else {
       await ctx.db.insert("nextBatchRun", { runId });
+    }
+  },
+});
+
+export const onEmailComplete = emailWorkpool.defineOnComplete({
+  context: v.object({
+    emailIds: v.array(v.id("outbound_emails")),
+  }),
+  handler: async (ctx, args) => {
+    // If the action failed (exhausted retries), mark all emails in this batch as failed
+    if (args.result.kind === "failed") {
+      const error = args.result.error;
+      for (const emailId of args.context.emailIds) {
+        // Only update if still processing (don't overwrite sent ones if partial success?)
+        // Actually performBatchSend updates individually. If the action threw, it means the *loop* threw.
+        // Some might have been sent before the throw. We should only fail the "processing" ones.
+        const email = await ctx.db.get(emailId);
+        if (email && email.status === "processing") {
+          await ctx.db.patch(emailId, {
+            status: "failed",
+            error: `Batch failed: ${error}`,
+            finalizedAt: Date.now(),
+          });
+        }
+      }
+    }
+    // If canceled, fail them too
+    if (args.result.kind === "canceled") {
+      for (const emailId of args.context.emailIds) {
+        const email = await ctx.db.get(emailId);
+        if (email && email.status === "processing") {
+          await ctx.db.patch(emailId, {
+            status: "failed",
+            error: "Batch cancelled",
+            finalizedAt: Date.now(),
+          });
+        }
+      }
     }
   },
 });

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2024-12-21
+
+### Fixed
+- **Stuck Processing State**: Added an `onComplete` handler to the internal workpool. This ensures that if retries are exhausted (e.g., permanent failures or timeouts), any emails remaining in the `processing` state are correctly marked as `failed`, preventing them from getting stuck indefinitely.
+- **Explicit Retry Configuration**: Configured the batch sender to retry up to 5 times with exponential backoff (starting at 1s) for temporary errors.
+
 ## [0.1.3] - 2024-12-21
 
 ### Optimized
