@@ -5,7 +5,7 @@ import type {
   GenericQueryCtx,
   FunctionReference,
 } from "convex/server";
-import { type InboundWebhookPayload } from "@inboundemail/sdk";
+import { type InboundWebhookPayload } from "inboundemail";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { InboundEmail, OutboundEmail, EmailOptions, InboundOptions, Attachment, InboundAttachment, EmailEvent, DeliveryEvent } from "../component/shared.js";
 import { vEmailEvent } from "../component/shared.js";
@@ -64,8 +64,8 @@ export class Inbound {
         from: email.from?.text ?? "unknown",
         to: email.to?.text ?? "unknown",
         subject: email.subject ?? "(no subject)",
-        text: email.parsedData.textBody,
-        html: email.parsedData.htmlBody,
+        text: email.parsedData.textBody ?? undefined,
+        html: email.parsedData.htmlBody ?? undefined,
         cc: email.parsedData.cc?.addresses.map(a => a.address).filter((a): a is string => !!a),
         bcc: email.parsedData.bcc?.addresses.map(a => a.address).filter((a): a is string => !!a),
         receivedAt: Date.now(),

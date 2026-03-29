@@ -10,7 +10,7 @@ import { Workpool } from "@convex-dev/workpool";
 import { RateLimiter } from "@convex-dev/rate-limiter";
 import { api, components, internal } from "./_generated/api.js";
 import { vOutboundEmailOptions, vStatus, vAttachment } from "./shared.js";
-import { Inbound } from "@inboundemail/sdk";
+import Inbound from "inboundemail";
 
 const SEGMENT_MS = 125;
 const EMAIL_POOL_SIZE = 4;
@@ -270,7 +270,7 @@ export const performBatchSend = internalAction({
       );
     }
 
-    const client = new Inbound(apiKey);
+    const client = new Inbound({ apiKey });
 
     // Process each email in the batch
     for (const emailId of args.emailIds) {
@@ -297,11 +297,11 @@ export const performBatchSend = internalAction({
           html: email.html,
           cc: email.cc,
           bcc: email.bcc,
-          replyTo: email.replyTo,
+          reply_to: email.replyTo,
           attachments: email.attachments?.map(a => ({
             filename: a.filename,
             content: a.content as string,
-            contentType: a.contentType,
+            content_type: a.contentType,
           })),
           headers: {
             ...email.headers,
@@ -309,14 +309,10 @@ export const performBatchSend = internalAction({
           },
         });
 
-        if (response.error) {
-          throw new Error(response.error);
-        }
-
         await ctx.runMutation(internal.lib.updateEmailStatus, {
           emailId,
           status: "sent",
-          inboundId: response.data?.id,
+          inboundId: response.id,
         });
       } catch (e: any) {
         const msg = e.message || "";
