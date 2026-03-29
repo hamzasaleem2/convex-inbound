@@ -120,6 +120,81 @@ export const vEmailEvent = v.object({
 
 export type EmailEvent = Infer<typeof vEmailEvent>;
 
+// Webhook payload types (mirrored from inboundemail to avoid leaking the dependency to consumers)
+export interface InboundEmailAddress {
+    address: string;
+    name: string | null;
+}
+
+export interface InboundAddressGroup {
+    text: string;
+    addresses: InboundEmailAddress[];
+}
+
+export interface InboundEmailAttachmentPayload {
+    filename: string;
+    contentType: string;
+    size: number;
+    contentId: string | null;
+    contentDisposition: 'attachment' | 'inline';
+    downloadUrl: string;
+}
+
+export interface InboundParsedEmailData {
+    messageId: string;
+    date: Date;
+    subject: string;
+    from: InboundAddressGroup;
+    to: InboundAddressGroup;
+    cc: InboundAddressGroup | null;
+    bcc: InboundAddressGroup | null;
+    replyTo: InboundAddressGroup | null;
+    inReplyTo: string | undefined;
+    references: string | string[] | undefined;
+    textBody: string | null;
+    htmlBody: string | null;
+    raw: string;
+    attachments: InboundEmailAttachmentPayload[];
+    headers: Record<string, string>;
+    priority: string | undefined;
+}
+
+export interface InboundCleanedContent {
+    html: string | null;
+    text: string | null;
+    hasHtml: boolean;
+    hasText: boolean;
+    attachments: InboundEmailAttachmentPayload[];
+    headers: Record<string, string>;
+}
+
+export interface InboundWebhookEmail {
+    id: string;
+    messageId: string;
+    from: InboundAddressGroup;
+    to: InboundAddressGroup;
+    recipient: string;
+    subject: string;
+    receivedAt: string;
+    parsedData: InboundParsedEmailData;
+    cleanedContent: InboundCleanedContent;
+}
+
+export interface InboundWebhookEndpoint {
+    id: string;
+    name: string;
+    type: 'webhook' | 'email' | 'email_group';
+}
+
+export type InboundWebhookEvent = 'email.received';
+
+export interface InboundWebhookPayload {
+    event: InboundWebhookEvent;
+    timestamp: string;
+    email: InboundWebhookEmail;
+    endpoint: InboundWebhookEndpoint;
+}
+
 // Delivery event stored in DB
 export interface DeliveryEvent {
     _id: string;
