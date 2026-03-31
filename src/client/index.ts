@@ -1,17 +1,36 @@
 import type {
-  GenericActionCtx,
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
   FunctionReference,
+  FunctionArgs,
+  FunctionReturnType,
 } from "convex/server";
-import { type InboundWebhookPayload } from "@inboundemail/sdk";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { InboundEmail, OutboundEmail, EmailOptions, InboundOptions, Attachment, InboundAttachment, EmailEvent, DeliveryEvent } from "../component/shared.js";
+import type { InboundWebhookPayload } from "inboundemail";
 import { vEmailEvent } from "../component/shared.js";
 
 export type { InboundEmail, OutboundEmail, EmailOptions, InboundOptions, Attachment, InboundAttachment, EmailEvent, DeliveryEvent };
 export { vEmailEvent };
+
+export type RunQueryCtx = {
+  runQuery: <Query extends FunctionReference<"query", "internal">>(
+    query: Query,
+    args: FunctionArgs<Query>,
+  ) => Promise<FunctionReturnType<Query>>;
+};
+
+export type RunMutationCtx = RunQueryCtx & {
+  runMutation: <Mutation extends FunctionReference<"mutation", "internal">>(
+    mutation: Mutation,
+    args: FunctionArgs<Mutation>,
+  ) => Promise<FunctionReturnType<Mutation>>;
+};
+
+export type RunActionCtx = RunMutationCtx & {
+  runAction: <Action extends FunctionReference<"action", "internal">>(
+    action: Action,
+    args: FunctionArgs<Action>,
+  ) => Promise<FunctionReturnType<Action>>;
+};
 
 // Extended options including onEmailEvent callback
 export interface InboundClientOptions extends InboundOptions {
@@ -36,7 +55,7 @@ export class Inbound {
    * with the INBOUND_WEBHOOK_SECRET environment variable.
    */
   async handleInboundWebhook(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     request: Request
   ): Promise<Response> {
     // Optional webhook verification using custom header
@@ -64,8 +83,8 @@ export class Inbound {
         from: email.from?.text ?? "unknown",
         to: email.to?.text ?? "unknown",
         subject: email.subject ?? "(no subject)",
-        text: email.parsedData.textBody,
-        html: email.parsedData.htmlBody,
+        text: email.parsedData.textBody ?? undefined,
+        html: email.parsedData.htmlBody ?? undefined,
         cc: email.parsedData.cc?.addresses.map(a => a.address).filter((a): a is string => !!a),
         bcc: email.parsedData.bcc?.addresses.map(a => a.address).filter((a): a is string => !!a),
         receivedAt: Date.now(),
@@ -90,7 +109,7 @@ export class Inbound {
    * In testMode (default true), only test addresses are allowed.
    */
   async send(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     options: EmailOptions
   ): Promise<string> {
     // Validate testMode for all recipients
@@ -105,7 +124,7 @@ export class Inbound {
    * Alias for send() - matches common email API patterns.
    */
   async sendEmail(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     options: EmailOptions
   ): Promise<string> {
     return this.send(ctx, options);
@@ -120,7 +139,7 @@ export class Inbound {
    * In testMode (default true), only test addresses are allowed.
    */
   async sendBatch(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     emails: EmailOptions[]
   ): Promise<string[]> {
     const emailIds: string[] = [];
@@ -142,7 +161,7 @@ export class Inbound {
    * Replies to an existing inbound email.
    */
   async reply(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     args: {
       inboundEmailId: string;
       text?: string;
@@ -159,7 +178,7 @@ export class Inbound {
    * Lists received emails.
    */
   async listInboundEmails(
-    ctx: GenericQueryCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunQueryCtx | RunActionCtx,
     args: { limit?: number } = {}
   ): Promise<InboundEmail[]> {
     return (await ctx.runQuery(this.component.lib.listInboundEmails, args)) as InboundEmail[];
@@ -169,7 +188,7 @@ export class Inbound {
    * Lists sent (outbound) emails.
    */
   async listOutboundEmails(
-    ctx: GenericQueryCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunQueryCtx | RunActionCtx,
     args: { limit?: number } = {}
   ): Promise<OutboundEmail[]> {
     return (await ctx.runQuery(this.component.lib.listOutboundEmails, args)) as OutboundEmail[];
@@ -179,7 +198,7 @@ export class Inbound {
    * Gets details of an outbound email.
    */
   async getOutboundEmail(
-    ctx: GenericQueryCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunQueryCtx | RunActionCtx,
     emailId: string
   ): Promise<OutboundEmail | null> {
     return (await ctx.runQuery(this.component.lib.getEmailById as any, { emailId })) as OutboundEmail | null;
@@ -190,7 +209,7 @@ export class Inbound {
    * Returns null if the email doesn't exist.
    */
   async status(
-    ctx: GenericQueryCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunQueryCtx | RunActionCtx,
     emailId: string
   ): Promise<{
     status: "queued" | "processing" | "sent" | "failed" | "cancelled";
@@ -223,7 +242,7 @@ export class Inbound {
    * Throws if the email has already been sent or failed.
    */
   async cancelEmail(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx | RunActionCtx,
     emailId: string
   ): Promise<{ success: boolean; message: string }> {
     return (await ctx.runMutation(this.component.lib.cancelEmail as any, { emailId })) as { success: boolean; message: string };
@@ -275,7 +294,7 @@ export class Inbound {
    * Lists delivery events for an email or all emails.
    */
   async listDeliveryEvents(
-    ctx: GenericQueryCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+    ctx: RunQueryCtx | RunActionCtx,
     args: { emailId?: string; limit?: number } = {}
   ): Promise<DeliveryEvent[]> {
     return (await ctx.runQuery(this.component.lib.listDeliveryEvents as any, args)) as DeliveryEvent[];

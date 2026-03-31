@@ -114,7 +114,7 @@
   "dependencies": {
     "@convex-dev/rate-limiter": "^0.3.2",
     "@convex-dev/workpool": "^0.3.0",
-    "@inboundemail/sdk": "^4.4.0",
+    "inboundemail": "^0.20.0",
     "convex-helpers": "^0.1.108",
     "remeda": "^2.32.0"
   }
