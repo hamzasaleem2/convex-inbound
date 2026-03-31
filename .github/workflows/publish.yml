@@ -25,6 +25,18 @@ jobs:
       
       - name: Build
         run: npm run build
+
+      - name: Validate release version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          RELEASE_VERSION="${RELEASE_TAG#v}"
+
+          if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "Release tag version ($RELEASE_VERSION) does not match package.json version ($PACKAGE_VERSION)."
+            echo "Bump package.json/package-lock.json before creating the GitHub release."
+            exit 1
+          fi
       
       - name: Publish to npm
         run: npm publish --access public

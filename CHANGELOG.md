@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2026-03-31
+
+### Changed
+- Bumped package version for a fresh npm release after the previous GitHub release/tag did not match the published package version.
+
 ## [0.1.4] - 2024-12-21
 
 ### Fixed
